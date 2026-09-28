@@ -1,0 +1,38 @@
+import {test,expect} from '@playwright/test';
+test('pricing selection, conditional fields, validation, and honest demo completion',async({page})=>{
+  await page.goto('/');
+  await page.getByRole('link',{name:'Bring the cut to me'}).click();
+  await expect(page.getByLabel('Casey Comes to You$60')).toBeChecked();
+  await expect(page.getByLabel('Address / location *')).toBeVisible();
+  await page.getByRole('button',{name:'Preview Cut Request'}).click();
+  await expect(page.getByRole('status')).toHaveCount(0);
+  await page.getByLabel('Your area *').selectOption('Other');
+  await page.getByLabel('City / area *').fill('Laguna Beach');
+  await page.getByLabel('Address / location *').fill('123 Example Street');
+  await page.getByLabel('Your name *').fill('Test Client');
+  await page.getByLabel('Phone *').fill('7145550100');
+  await page.getByLabel('Email *').fill('test@example.com');
+  await page.getByLabel('Preferred date *').fill('2026-12-15');
+  await page.getByLabel('Preferred time (Pacific) *').fill('14:30');
+  await page.getByLabel('Cut type *').selectOption('Fade');
+  await page.getByRole('button',{name:'Preview Cut Request'}).click();
+  await expect(page.getByRole('status')).toContainText('nothing was sent or booked');
+  await expect(page.getByRole('link',{name:'Text Casey your request'})).toHaveAttribute('href',/^sms:\+17149327538/);
+  await page.getByRole('button',{name:'Back to form'}).click();
+  await page.getByLabel('Come to Casey$35',{exact:true}).check();
+  await expect(page.getByLabel('Address / location *')).toHaveCount(0);
+});
+test('mobile navigation and layout, valid media and metadata',async({page})=>{
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.setViewportSize({width:390,height:844});await page.goto('/');
+  await page.getByRole('button',{name:'Open menu'}).click();
+  await page.getByRole('navigation').getByRole('link',{name:'The barber'}).click();
+  await expect(page.getByRole('button',{name:'Open menu'})).toHaveAttribute('aria-expanded','false');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  expect(await page.locator('.hero-art img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
+  expect(await page.locator('script[type="application/ld+json"]').textContent()).toContain('HairSalon');
+  expect(errors).toEqual([]);
+  await page.screenshot({path:'test-results/mobile.png',fullPage:true});
+  await page.setViewportSize({width:1440,height:1000});await page.goto('/');await page.evaluate(()=>document.fonts.ready);
+  await page.screenshot({path:'test-results/desktop.png',fullPage:true});
+});
